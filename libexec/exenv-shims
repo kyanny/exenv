@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Summary: List existing exenv shims
+# Usage: exenv shims [--short]
+
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+# Provide exenv completions
+if [ "$1" = "--complete" ]; then
+  echo --short
+  exit
+fi
+
+shopt -s nullglob
+
+for command in "${EXENV_ROOT}/shims/"*; do
+  if [ "$1" = "--short" ]; then
+    echo "${command##*/}"
+  else
+    echo "$command"
+  fi
+done | sort

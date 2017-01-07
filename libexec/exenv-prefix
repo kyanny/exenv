@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Summary: Display prefix for a Elixir version
+# Usage: exenv prefix [<version>]
+#
+# Displays the directory where a Elixir version is installed. If no
+# version is given, `exenv prefix' displays the location of the
+# currently selected version.
+
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+# Provide exenv completions
+if [ "$1" = "--complete" ]; then
+  echo system
+  exec exenv-versions --bare
+fi
+
+if [ -n "$1" ]; then
+  export EXENV_VERSION="$1"
+elif [ -z "$EXENV_VERSION" ]; then
+  EXENV_VERSION="$(exenv-version-name)"
+fi
+
+if [ "$EXENV_VERSION" = "system" ]; then
+  if RUBY_PATH="$(exenv-which ruby 2>/dev/null)"; then
+    RUBY_PATH="${RUBY_PATH%/*}"
+    EXENV_PREFIX_PATH="${RUBY_PATH%/bin}"
+    echo "${EXENV_PREFIX_PATH:-/}"
+    exit
+  else
+    echo "exenv: system version not found in PATH" >&2
+    exit 1
+  fi
+fi
+
+EXENV_PREFIX_PATH="${EXENV_ROOT}/versions/${EXENV_VERSION}"
+if [ ! -d "$EXENV_PREFIX_PATH" ]; then
+  echo "exenv: version \`${EXENV_VERSION}' not installed" >&2
+  exit 1
+fi
+
+echo "$EXENV_PREFIX_PATH"

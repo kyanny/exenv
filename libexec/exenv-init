@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# Summary: Configure the shell environment for exenv
+# Usage: eval "$(exenv init - [--no-rehash] [<shell>])"
+
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+# Provide exenv completions
+if [ "$1" = "--complete" ]; then
+  echo -
+  echo --no-rehash
+  echo bash
+  echo fish
+  echo ksh
+  echo zsh
+  exit
+fi
+
+print=""
+no_rehash=""
+for args in "$@"
+do
+  if [ "$args" = "-" ]; then
+    print=1
+    shift
+  fi
+
+  if [ "$args" = "--no-rehash" ]; then
+    no_rehash=1
+    shift
+  fi
+done
+
+shell="$1"
+if [ -z "$shell" ]; then
+  shell="$(ps -p "$PPID" -o 'args=' 2>/dev/null || true)"
+  shell="${shell%% *}"
+  shell="${shell##-}"
+  shell="${shell:-$SHELL}"
+  shell="${shell##*/}"
+fi
+
+root="${0%/*}/.."
+
+if [ -z "$print" ]; then
+  case "$shell" in
+  bash )
+    if [ -f "${HOME}/.bashrc" ] && [ ! -f "${HOME}/.bash_profile" ]; then
+      profile='~/.bashrc'
+    else
+      profile='~/.bash_profile'
+    fi
+    ;;
+  zsh )
+    profile='~/.zshrc'
+    ;;
+  ksh )
+    profile='~/.profile'
+    ;;
+  fish )
+    profile='~/.config/fish/config.fish'
+    ;;
+  * )
+    profile='your profile'
+    ;;
+  esac
+
+  { echo "# Load exenv automatically by appending"
+    echo "# the following to ${profile}:"
+    echo
+    case "$shell" in
+    fish )
+      echo 'status --is-interactive; and source (exenv init -|psub)'
+      ;;
+    * )
+      echo 'eval "$(exenv init -)"'
+      ;;
+    esac
+    echo
+  } >&2
+
+  exit 1
+fi
+
+mkdir -p "${EXENV_ROOT}/"{shims,versions}
+
+case "$shell" in
+fish )
+  echo "setenv PATH '${EXENV_ROOT}/shims' \$PATH"
+  echo "setenv EXENV_SHELL $shell"
+;;
+* )
+  echo 'export PATH="'${EXENV_ROOT}'/shims:${PATH}"'
+  echo "export EXENV_SHELL=$shell"
+;;
+esac
+
+completion="${root}/completions/exenv.${shell}"
+if [ -r "$completion" ]; then
+  echo "source '$completion'"
+fi
+
+if [ -z "$no_rehash" ]; then
+  echo 'command exenv rehash 2>/dev/null'
+fi
+
+commands=(`exenv-commands --sh`)
+case "$shell" in
+fish )
+  cat <<EOS
+function exenv
+  set command \$argv[1]
+  set -e argv[1]
+
+  switch "\$command"
+  case ${commands[*]}
+    source (exenv "sh-\$command" \$argv|psub)
+  case '*'
+    command exenv "\$command" \$argv
+  end
+end
+EOS
+  ;;
+ksh )
+  cat <<EOS
+function exenv {
+  typeset command
+EOS
+  ;;
+* )
+  cat <<EOS
+exenv() {
+  local command
+EOS
+  ;;
+esac
+
+if [ "$shell" != "fish" ]; then
+IFS="|"
+cat <<EOS
+  command="\$1"
+  if [ "\$#" -gt 0 ]; then
+    shift
+  fi
+
+  case "\$command" in
+  ${commands[*]})
+    eval "\$(exenv "sh-\$command" "\$@")";;
+  *)
+    command exenv "\$command" "\$@";;
+  esac
+}
+EOS
+fi

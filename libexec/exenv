@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+set -e
+unset CDPATH
+
+if [ "$1" = "--debug" ]; then
+  export EXENV_DEBUG=1
+  shift
+fi
+
+if [ -n "$EXENV_DEBUG" ]; then
+  export PS4='+ [${BASH_SOURCE##*/}:${LINENO}] '
+  set -x
+fi
+
+abort() {
+  { if [ "$#" -eq 0 ]; then cat -
+    else echo "exenv: $*"
+    fi
+  } >&2
+  exit 1
+}
+
+if enable -f "${BASH_SOURCE%/*}"/../libexec/exenv-realpath.dylib realpath 2>/dev/null; then
+  abs_dirname() {
+    local path="$(realpath "$1")"
+    echo "${path%/*}"
+  }
+else
+  [ -z "$EXENV_NATIVE_EXT" ] || abort "failed to load \`realpath' builtin"
+
+  READLINK=$(type -p greadlink readlink | head -1)
+  [ -n "$READLINK" ] || abort "cannot find readlink - are you missing GNU coreutils?"
+
+  resolve_link() {
+    $READLINK "$1"
+  }
+
+  abs_dirname() {
+    local cwd="$PWD"
+    local path="$1"
+
+    while [ -n "$path" ]; do
+      cd "${path%/*}"
+      local name="${path##*/}"
+      path="$(resolve_link "$name" || true)"
+    done
+
+    pwd
+    cd "$cwd"
+  }
+fi
+
+if [ -z "${EXENV_ROOT}" ]; then
+  EXENV_ROOT="${HOME}/.exenv"
+else
+  EXENV_ROOT="${EXENV_ROOT%/}"
+fi
+export EXENV_ROOT
+
+if [ -z "${EXENV_DIR}" ]; then
+  EXENV_DIR="$PWD"
+else
+  cd "$EXENV_DIR" 2>/dev/null || abort "cannot change working directory to \`$EXENV_DIR'"
+  EXENV_DIR="$PWD"
+  cd "$OLDPWD"
+fi
+export EXENV_DIR
+
+
+shopt -s nullglob
+
+bin_path="$(abs_dirname "$0")"
+for plugin_bin in "${EXENV_ROOT}/plugins/"*/bin; do
+  PATH="${plugin_bin}:${PATH}"
+done
+export PATH="${bin_path}:${PATH}"
+
+EXENV_HOOK_PATH="${EXENV_HOOK_PATH}:${EXENV_ROOT}/exenv.d"
+if [ "${bin_path%/*}" != "$EXENV_ROOT" ]; then
+  # Add exenv's own `exenv.d` unless exenv was cloned to EXENV_ROOT
+  EXENV_HOOK_PATH="${EXENV_HOOK_PATH}:${bin_path%/*}/exenv.d"
+fi
+EXENV_HOOK_PATH="${EXENV_HOOK_PATH}:/usr/local/etc/exenv.d:/etc/exenv.d:/usr/lib/exenv/hooks"
+for plugin_hook in "${EXENV_ROOT}/plugins/"*/etc/exenv.d; do
+  EXENV_HOOK_PATH="${EXENV_HOOK_PATH}:${plugin_hook}"
+done
+EXENV_HOOK_PATH="${EXENV_HOOK_PATH#:}"
+export EXENV_HOOK_PATH
+
+shopt -u nullglob
+
+
+command="$1"
+case "$command" in
+"" )
+  { exenv---version
+    exenv-help
+  } | abort
+  ;;
+-v | --version )
+  exec exenv---version
+  ;;
+-h | --help )
+  exec exenv-help
+  ;;
+* )
+  command_path="$(command -v "exenv-$command" || true)"
+  [ -n "$command_path" ] || abort "no such command \`$command'"
+
+  shift 1
+  if [ "$1" = --help ]; then
+    if [[ "$command" == "sh-"* ]]; then
+      echo "exenv help \"$command\""
+    else
+      exec exenv-help "$command"
+    fi
+  else
+    exec "$command_path" "$@"
+  fi
+  ;;
+esac

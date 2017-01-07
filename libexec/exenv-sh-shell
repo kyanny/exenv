@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+#
+# Summary: Set or show the shell-specific Elixir version
+#
+# Usage: exenv shell <version>
+#        exenv shell -
+#        exenv shell --unset
+#
+# Sets a shell-specific Elixir version by setting the `EXENV_VERSION'
+# environment variable in your shell. This version overrides local
+# application-specific versions and the global version.
+#
+# <version> should be a string matching a Elixir version known to exenv.
+# The special version string `system' will use your default system Elixir.
+# Run `exenv versions' for a list of available Elixir versions.
+#
+# When `-` is passed instead of the version string, the previously set
+# version will be restored. With `--unset`, the `EXENV_VERSION`
+# environment variable gets unset, restoring the environment to the
+# state before the first `exenv shell` call.
+
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+# Provide exenv completions
+if [ "$1" = "--complete" ]; then
+  echo --unset
+  echo system
+  exec exenv-versions --bare
+fi
+
+version="$1"
+shell="$(basename "${EXENV_SHELL:-$SHELL}")"
+
+if [ -z "$version" ]; then
+  if [ -z "$EXENV_VERSION" ]; then
+    echo "exenv: no shell-specific version configured" >&2
+    exit 1
+  else
+    echo 'echo "$EXENV_VERSION"'
+    exit
+  fi
+fi
+
+if [ "$version" = "--unset" ]; then
+  case "$shell" in
+  fish )
+    echo 'set -gu EXENV_VERSION_OLD "$EXENV_VERSION"'
+    echo "set -e EXENV_VERSION"
+    ;;
+  * )
+    echo 'EXENV_VERSION_OLD="$EXENV_VERSION"'
+    echo "unset EXENV_VERSION"
+    ;;
+  esac
+  exit
+fi
+
+if [ "$version" = "-" ]; then
+  case "$shell" in
+  fish )
+    cat <<EOS
+if set -q EXENV_VERSION_OLD
+  if [ -n "\$EXENV_VERSION_OLD" ]
+    set EXENV_VERSION_OLD_ "\$EXENV_VERSION"
+    set -gx EXENV_VERSION "\$EXENV_VERSION_OLD"
+    set -gu EXENV_VERSION_OLD "\$EXENV_VERSION_OLD_"
+    set -e EXENV_VERSION_OLD_
+  else
+    set -gu EXENV_VERSION_OLD "\$EXENV_VERSION"
+    set -e EXENV_VERSION
+  end
+else
+  echo "exenv: EXENV_VERSION_OLD is not set" >&2
+  false
+end
+EOS
+    ;;
+  * )
+    cat <<EOS
+if [ -n "\${EXENV_VERSION_OLD+x}" ]; then
+  if [ -n "\$EXENV_VERSION_OLD" ]; then
+    EXENV_VERSION_OLD_="\$EXENV_VERSION"
+    export EXENV_VERSION="\$EXENV_VERSION_OLD"
+    EXENV_VERSION_OLD="\$EXENV_VERSION_OLD_"
+    unset EXENV_VERSION_OLD_
+  else
+    EXENV_VERSION_OLD="\$EXENV_VERSION"
+    unset EXENV_VERSION
+  fi
+else
+  echo "exenv: EXENV_VERSION_OLD is not set" >&2
+  false
+fi
+EOS
+    ;;
+  esac
+  exit
+fi
+
+# Make sure the specified version is installed.
+if exenv-prefix "$version" >/dev/null; then
+  if [ "$version" != "$EXENV_VERSION" ]; then
+    case "$shell" in
+    fish )
+      echo 'set -gu EXENV_VERSION_OLD "$EXENV_VERSION"'
+      echo "set -gx EXENV_VERSION \"$version\""
+      ;;
+    * )
+      echo 'EXENV_VERSION_OLD="$EXENV_VERSION"'
+      echo "export EXENV_VERSION=\"$version\""
+      ;;
+    esac
+  fi
+else
+  echo "false"
+  exit 1
+fi

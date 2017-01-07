@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Summary: Show the current Elixir version and its origin
+#
+# Shows the currently selected Elixir version and how it was
+# selected. To obtain only the version string, use `exenv
+# version-name'.
+
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+echo "$(exenv-version-name) (set by $(exenv-version-origin))"

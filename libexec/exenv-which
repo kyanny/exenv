@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+#
+# Summary: Display the full path to an executable
+#
+# Usage: exenv which <command>
+#
+# Displays the full path to the executable that exenv will invoke when
+# you run the given command.
+
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+# Provide exenv completions
+if [ "$1" = "--complete" ]; then
+  exec exenv-shims --short
+fi
+
+remove_from_path() {
+  local path_to_remove="$1"
+  local path_before
+  local result=":${PATH//\~/$HOME}:"
+  while [ "$path_before" != "$result" ]; do
+    path_before="$result"
+    result="${result//:$path_to_remove:/:}"
+  done
+  result="${result%:}"
+  echo "${result#:}"
+}
+
+EXENV_COMMAND="$1"
+
+if [ -z "$EXENV_COMMAND" ]; then
+  exenv-help --usage which >&2
+  exit 1
+fi
+
+EXENV_VERSION="${EXENV_VERSION:-$(exenv-version-name)}"
+
+if [ "$EXENV_VERSION" = "system" ]; then
+  PATH="$(remove_from_path "${EXENV_ROOT}/shims")"
+  EXENV_COMMAND_PATH="$(command -v "$EXENV_COMMAND" || true)"
+else
+  EXENV_COMMAND_PATH="${EXENV_ROOT}/versions/${EXENV_VERSION}/bin/${EXENV_COMMAND}"
+fi
+
+OLDIFS="$IFS"
+IFS=$'\n' scripts=(`exenv-hooks which`)
+IFS="$OLDIFS"
+for script in "${scripts[@]}"; do
+  source "$script"
+done
+
+if [ -x "$EXENV_COMMAND_PATH" ]; then
+  echo "$EXENV_COMMAND_PATH"
+elif [ "$EXENV_VERSION" != "system" ] && [ ! -d "${EXENV_ROOT}/versions/${EXENV_VERSION}" ]; then
+  echo "exenv: version \`$EXENV_VERSION' is not installed (set by $(exenv-version-origin))" >&2
+  exit 1
+else
+  echo "exenv: $EXENV_COMMAND: command not found" >&2
+
+  versions="$(exenv-whence "$EXENV_COMMAND" || true)"
+  if [ -n "$versions" ]; then
+    { echo
+      echo "The \`$1' command exists in these Elixir versions:"
+      echo "$versions" | sed 's/^/  /g'
+      echo
+    } >&2
+  fi
+
+  exit 127
+fi

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Summary: Explain how the current Elixir version is set
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+unset EXENV_VERSION_ORIGIN
+
+OLDIFS="$IFS"
+IFS=$'\n' scripts=(`exenv-hooks version-origin`)
+IFS="$OLDIFS"
+for script in "${scripts[@]}"; do
+  source "$script"
+done
+
+if [ -n "$EXENV_VERSION_ORIGIN" ]; then
+  echo "$EXENV_VERSION_ORIGIN"
+elif [ -n "$EXENV_VERSION" ]; then
+  echo "EXENV_VERSION environment variable"
+else
+  exenv-version-file
+fi

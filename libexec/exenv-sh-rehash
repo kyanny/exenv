@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+# Provide exenv completions
+if [ "$1" = "--complete" ]; then
+  exec exenv-rehash --complete
+fi
+
+shell="$(basename "${EXENV_SHELL:-$SHELL}")"
+
+# When exenv shell integration is enabled, delegate to exenv-rehash,
+# then tell the shell to empty its command lookup cache.
+exenv-rehash
+
+case "$shell" in
+fish )
+  # no rehash support
+  ;;
+* )
+  echo "hash -r 2>/dev/null || true"
+  ;;
+esac

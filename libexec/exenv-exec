@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#
+# Summary: Run an executable with the selected Elixir version
+#
+# Usage: exenv exec <command> [arg1 arg2...]
+#
+# Runs an executable by first preparing PATH so that the selected Elixir
+# version's `bin' directory is at the front.
+#
+# For example, if the currently selected Elixir version is 1.4.0:
+#   exenv exec mix install
+#
+# is equivalent to:
+#   PATH="$EXENV_ROOT/versions/1.4.0/bin:$PATH" mix install
+
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+# Provide exenv completions
+if [ "$1" = "--complete" ]; then
+  exec exenv-shims --short
+fi
+
+EXENV_VERSION="$(exenv-version-name)"
+EXENV_COMMAND="$1"
+
+if [ -z "$EXENV_COMMAND" ]; then
+  exenv-help --usage exec >&2
+  exit 1
+fi
+
+export EXENV_VERSION
+EXENV_COMMAND_PATH="$(exenv-which "$EXENV_COMMAND")"
+EXENV_BIN_PATH="${EXENV_COMMAND_PATH%/*}"
+
+OLDIFS="$IFS"
+IFS=$'\n' scripts=(`exenv-hooks exec`)
+IFS="$OLDIFS"
+for script in "${scripts[@]}"; do
+  source "$script"
+done
+
+shift 1
+if [ "$EXENV_VERSION" != "system" ]; then
+  export PATH="${EXENV_BIN_PATH}:${PATH}"
+fi
+exec -a "$EXENV_COMMAND" "$EXENV_COMMAND_PATH" "$@"

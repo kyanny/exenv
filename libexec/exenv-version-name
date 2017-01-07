@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Summary: Show the current Elixir version
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+if [ -z "$EXENV_VERSION" ]; then
+  EXENV_VERSION_FILE="$(exenv-version-file)"
+  EXENV_VERSION="$(exenv-version-file-read "$EXENV_VERSION_FILE" || true)"
+fi
+
+OLDIFS="$IFS"
+IFS=$'\n' scripts=(`exenv-hooks version-name`)
+IFS="$OLDIFS"
+for script in "${scripts[@]}"; do
+  source "$script"
+done
+
+if [ -z "$EXENV_VERSION" ] || [ "$EXENV_VERSION" = "system" ]; then
+  echo "system"
+  exit
+fi
+
+version_exists() {
+  local version="$1"
+  [ -d "${EXENV_ROOT}/versions/${version}" ]
+}
+
+if version_exists "$EXENV_VERSION"; then
+  echo "$EXENV_VERSION"
+elif version_exists "${EXENV_VERSION#ruby-}"; then
+  echo "${EXENV_VERSION#ruby-}"
+else
+  echo "exenv: version \`$EXENV_VERSION' is not installed (set by $(exenv-version-origin))" >&2
+  exit 1
+fi

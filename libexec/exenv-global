@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#
+# Summary: Set or show the global Elixir version
+#
+# Usage: exenv global <version>
+#
+# Sets the global Elixir version. You can override the global version at
+# any time by setting a directory-specific version with `exenv local'
+# or by setting the `EXENV_VERSION' environment variable.
+#
+# <version> should be a string matching a Elixir version known to exenv.
+# The special version string `system' will use your default system Elixir.
+# Run `exenv versions' for a list of available Elixir versions.
+
+set -e
+[ -n "$EXENV_DEBUG" ] && set -x
+
+# Provide exenv completions
+if [ "$1" = "--complete" ]; then
+  echo system
+  exec exenv-versions --bare
+fi
+
+EXENV_VERSION="$1"
+EXENV_VERSION_FILE="${EXENV_ROOT}/version"
+
+if [ -n "$EXENV_VERSION" ]; then
+  exenv-version-file-write "$EXENV_VERSION_FILE" "$EXENV_VERSION"
+else
+  exenv-version-file-read "$EXENV_VERSION_FILE" || echo system
+fi
