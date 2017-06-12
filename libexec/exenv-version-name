@@ -27,8 +27,8 @@ version_exists() {
 
 if version_exists "$EXENV_VERSION"; then
   echo "$EXENV_VERSION"
-elif version_exists "${EXENV_VERSION#ruby-}"; then
-  echo "${EXENV_VERSION#ruby-}"
+elif version_exists "${EXENV_VERSION#elixir-}"; then
+  echo "${EXENV_VERSION#elixir-}"
 else
   echo "exenv: version \`$EXENV_VERSION' is not installed (set by $(exenv-version-origin))" >&2
   exit 1

@@ -87,7 +87,7 @@ print_version() {
 }
 
 # Include "system" in the non-bare output, if it exists
-if [ -n "$include_system" ] && EXENV_VERSION=system exenv-which ruby >/dev/null 2>&1; then
+if [ -n "$include_system" ] && EXENV_VERSION=system exenv-which elixir >/dev/null 2>&1; then
   print_version system
 fi
 

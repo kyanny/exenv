@@ -47,9 +47,9 @@ create_executable() {
   run ls "${EXENV_ROOT}/shims"
   assert_success
   assert_output <<OUT
+elixir
 rake
 rspec
-elixir
 OUT
 }
 
@@ -99,8 +99,8 @@ OUT
   run ls "${EXENV_ROOT}/shims"
   assert_success
   assert_output <<OUT
-rspec
 elixir
+rspec
 OUT
 }
 

@@ -57,8 +57,8 @@ load test_helper
   run exenv echo -F: "PATH"
   assert_success
   assert_line 0 "${BATS_TEST_DIRNAME%/*}/libexec"
-  assert_line 1 "${EXENV_ROOT}/plugins/elixir-build/bin"
-  assert_line 2 "${EXENV_ROOT}/plugins/exenv-each/bin"
+  assert_line 1 "${EXENV_ROOT}/plugins/exenv-each/bin"
+  assert_line 2 "${EXENV_ROOT}/plugins/elixir-build/bin"
 }
 
 @test "EXENV_HOOK_PATH preserves value from environment" {

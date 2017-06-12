@@ -22,7 +22,7 @@ elif [ -z "$EXENV_VERSION" ]; then
 fi
 
 if [ "$EXENV_VERSION" = "system" ]; then
-  if RUBY_PATH="$(exenv-which ruby 2>/dev/null)"; then
+  if RUBY_PATH="$(exenv-which elixir 2>/dev/null)"; then
     RUBY_PATH="${RUBY_PATH%/*}"
     EXENV_PREFIX_PATH="${RUBY_PATH%/bin}"
     echo "${EXENV_PREFIX_PATH:-/}"

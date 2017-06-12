@@ -38,8 +38,8 @@ create_executable() {
   assert_success
   assert_output <<OUT
 --help
-mix
 elixir
+mix
 OUT
 }
 
