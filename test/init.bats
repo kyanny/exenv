@@ -73,7 +73,7 @@ OUT
   export PATH="${BATS_TEST_DIRNAME}/../libexec:/usr/bin:/bin:/usr/local/bin"
   run exenv-init - fish
   assert_success
-  assert_line 0 "setenv PATH '${EXENV_ROOT}/shims' \$PATH"
+  assert_line 0 "set -gx PATH '${EXENV_ROOT}/shims' \$PATH"
 }
 
 @test "can add shims to PATH more than once" {
@@ -87,7 +87,7 @@ OUT
   export PATH="${EXENV_ROOT}/shims:$PATH"
   run exenv-init - fish
   assert_success
-  assert_line 0 "setenv PATH '${EXENV_ROOT}/shims' \$PATH"
+  assert_line 0 "set -gx PATH '${EXENV_ROOT}/shims' \$PATH"
 }
 
 @test "outputs sh-compatible syntax" {
