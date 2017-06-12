@@ -1,5 +1,4 @@
-# Groom your app’s Elixir environment with exenv.
-
+# Groom your app’s Elixir environment with exenv. [![Build Status](https://travis-ci.org/exenv/exenv.svg?branch=master)](https://travis-ci.org/exenv/exenv)
 
 Based totally on the GREAT [rbenv](https://github.com/rbenv/rbenv)
 
