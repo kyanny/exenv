@@ -36,6 +36,12 @@ easy to fork and contribute any changes back upstream.
 
     **Zsh note**: Modify your `~/.zshrc` file instead of `~/.bash_profile`.
 
+    **For fish shell**
+
+    ~~~ sh
+    $ echo 'set PATH $HOME/.exenv/bin $PATH' >> ~/.config/fish/config.fish
+    ~~~
+
 3. Run `~/.exenv/bin/exenv init` for shell-specific instructions on how to
    initialize exenv to enable shims and autocompletion.
 
